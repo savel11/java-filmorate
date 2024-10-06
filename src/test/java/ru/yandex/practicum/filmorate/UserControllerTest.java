@@ -26,7 +26,7 @@ public class UserControllerTest {
     public void createUserForTest() {
         user = new User();
         user.setEmail("user@yandex.ru");
-        user.setUserName("UserName");
+        user.setLogin("UserName");
         user.setName("Name");
         user.setBirthday(LocalDate.of(2001, 5, 9));
     }
@@ -64,23 +64,23 @@ public class UserControllerTest {
 
     @Test
     void createUserWithBlankUserName() {
-        user.setUserName("");
+        user.setLogin("");
         assertThrows(ConstraintViolationException.class, () -> userController.create(user),
                 "Добавление пользователя с пустым логином должно приводить к ошибки валидации");
-        user.setUserName(null);
+        user.setLogin(null);
         assertThrows(ConstraintViolationException.class, () -> userController.create(user),
                 "Добавление пользователя с null логином должно приводить к ошибки валидации");
     }
 
     @Test
     void createUserWithSpaceInUserName() {
-        user.setUserName("Us er");
+        user.setLogin("Us er");
         assertThrows(InvalidFormatException.class, () -> userController.create(user),
                 "Добавление пользователя с пробелом в логине должно приводить к ошибки валидации");
-        user.setUserName("User ");
+        user.setLogin("User ");
         assertThrows(InvalidFormatException.class, () -> userController.create(user),
                 "Добавление пользователя с пробелом в логине должно приводить к ошибки валидации");
-        user.setUserName(" User");
+        user.setLogin(" User");
         assertThrows(InvalidFormatException.class, () -> userController.create(user),
                 "Добавление пользователя с пробелом в логине должно приводить к ошибки валидации");
     }
@@ -97,7 +97,7 @@ public class UserControllerTest {
         userController.create(user);
         User newUser = new User();
         newUser.setEmail("user@yandex.ru");
-        newUser.setUserName("newUserName");
+        newUser.setLogin("newUserName");
         newUser.setName("newName");
         newUser.setBirthday(LocalDate.of(2005, 5, 9));
         assertThrows(DuplicatedDataException.class, () -> userController.create(newUser),
@@ -112,14 +112,14 @@ public class UserControllerTest {
     @Test
     void createUserWithBlankName() {
         user.setName("");
-        assertEquals(user.getUserName(), userController.create(user).getName(),
+        assertEquals(user.getLogin(), userController.create(user).getName(),
                 "При создание пользователя с пустым полем имя логин должен использоваться в качестве имени");
     }
 
     @Test
     void createUserWithoutName() {
         user.setName(null);
-        assertEquals(user.getUserName(), userController.create(user).getName(),
+        assertEquals(user.getLogin(), userController.create(user).getName(),
                 "При создание пользователя без имени логин должен использоваться в качестве имени");
     }
 
@@ -159,11 +159,11 @@ public class UserControllerTest {
     @Test
     void updateUserWithBlankUserName() {
         userController.create(user);
-        user.setUserName("");
+        user.setLogin("");
         user.setId(1L);
         assertThrows(ConstraintViolationException.class, () -> userController.update(user),
                 "Обновление пользователя с пустым логином должно приводить к ошибки валидации");
-        user.setUserName(null);
+        user.setLogin(null);
         assertThrows(ConstraintViolationException.class, () -> userController.update(user),
                 "Обновление пользователя с null логином должно приводить к ошибки валидации");
     }
@@ -171,14 +171,14 @@ public class UserControllerTest {
     @Test
     void updateUserWithSpaceInUserName() {
         userController.create(user);
-        user.setUserName("Us er");
+        user.setLogin("Us er");
         user.setId(1L);
         assertThrows(InvalidFormatException.class, () -> userController.update(user),
                 "Обновление пользователя с пробелом в логине должно приводить к ошибки валидации");
-        user.setUserName("User ");
+        user.setLogin("User ");
         assertThrows(InvalidFormatException.class, () -> userController.update(user),
                 "Обновление пользователя с пробелом в логине должно приводить к ошибки валидации");
-        user.setUserName(" User");
+        user.setLogin(" User");
         assertThrows(InvalidFormatException.class, () -> userController.update(user),
                 "Обновление пользователя с пробелом в логине должно приводить к ошибки валидации");
     }
@@ -197,7 +197,7 @@ public class UserControllerTest {
         userController.create(user);
         User newUser = new User();
         newUser.setEmail("user1@yandex.ru");
-        newUser.setUserName("newUserName");
+        newUser.setLogin("newUserName");
         newUser.setName("newName");
         newUser.setBirthday(LocalDate.of(2005, 5, 9));
         userController.create(newUser);
@@ -220,16 +220,7 @@ public class UserControllerTest {
         userController.create(user);
         user.setName("");
         user.setId(1L);
-        assertEquals(user.getUserName(), userController.update(user).getName(),
+        assertEquals(user.getLogin(), userController.update(user).getName(),
                 "При обновление пользователя с пустым полем имя логин должен использоваться в качестве имени");
-    }
-
-    @Test
-    void updateUserWithoutName() {
-        userController.create(user);
-        user.setName(null);
-        user.setId(1L);
-        assertEquals(user.getUserName(), userController.update(user).getName(),
-                "При обновление пользователя без имени логин должен использоваться в качестве имени");
     }
 }

@@ -29,7 +29,7 @@ public class UserController {
     public User create(@Valid @RequestBody User user) {
         log.info("Создаем нового пользователя");
         log.debug("Пользоваетль: " + user);
-        if (user.getUserName().contains(" ")) {
+        if (user.getLogin().contains(" ")) {
             log.warn("Пользователь не был создан: Логин пользователя не должен содержать пробелов");
             throw new InvalidFormatException("Некорректный формат логина: Логин не должен содержать пробелов.");
         }
@@ -39,7 +39,7 @@ public class UserController {
         }
         user.setId(getNextId());
         if (user.getName() == null || user.getName().isBlank()) {
-            user.setName(user.getUserName());
+            user.setName(user.getLogin());
         }
         users.put(user.getId(), user);
         log.info("Пользователь успешно создан!");
@@ -56,7 +56,7 @@ public class UserController {
         }
         if (users.containsKey(newUser.getId())) {
             User oldUser = users.get(newUser.getId());
-            if (newUser.getUserName().contains(" ")) {
+            if (newUser.getLogin().contains(" ")) {
                 log.warn("Данные не были обновленны: Логин пользователя не должен содержать пробелов");
                 throw new InvalidFormatException("Некорректный формат логина: Логин не должен содержать пробелов.");
             }
@@ -65,11 +65,13 @@ public class UserController {
                 log.warn("Данные не были обновленны: Пользователь с таким email уже существует");
                 throw new DuplicatedDataException("Этот имейл уже используется");
             }
-            oldUser.setUserName(newUser.getUserName());
+            oldUser.setLogin(newUser.getLogin());
             oldUser.setEmail(newUser.getEmail());
             oldUser.setBirthday(newUser.getBirthday());
-            if (newUser.getName() == null || newUser.getName().isBlank()) {
-                oldUser.setName(newUser.getUserName());
+            if ((newUser.getName() == null || newUser.getName().isBlank())) {
+                oldUser.setName(newUser.getLogin());
+            } else {
+                oldUser.setName(newUser.getName());
             }
             log.info("Данные пользователя успешно обновленны");
             return oldUser;

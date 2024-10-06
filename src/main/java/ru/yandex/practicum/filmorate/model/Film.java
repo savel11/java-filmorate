@@ -1,10 +1,15 @@
 package ru.yandex.practicum.filmorate.model;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+import ru.yandex.practicum.filmorate.resources.CustomDurationSerializer;
 
 
 import java.time.Duration;
@@ -19,8 +24,10 @@ public class Film {
     private String name;
     @Size(max = 200, message = "Некорректный формат описания: Описания не должно превышать 200 символов.")
     private String description;
-    @JsonFormat(pattern = "dd.MM.yyyy")
+    @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate releaseDate;
-    @JsonFormat(pattern = "MINUTES")
+    @JsonFormat( pattern = "MINUTES")
+    @JsonSerialize(using = CustomDurationSerializer.class)
     private Duration duration;
 }
+

@@ -18,9 +18,9 @@ public class User {
     @NotBlank(message = "Некорректный формат электронной почты: Электронная почта не должна быть пустой.")
     private String email;
     @NotBlank(message = "Некорректный формат логина: Логин не должен быть пустым.")
-    private String userName;
+    private String login;
     private String name;
     @PastOrPresent(message = "Некорректная дата рождения: Дата рождения не должна быть в будущем.")
-    @JsonFormat(pattern = "dd.MM.yyyy")
+    @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate birthday;
 }
