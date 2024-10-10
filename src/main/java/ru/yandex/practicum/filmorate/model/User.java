@@ -1,17 +1,23 @@
 package ru.yandex.practicum.filmorate.model;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.PastOrPresent;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.RequiredArgsConstructor;
 
 
 import java.time.LocalDate;
+import java.util.Set;
 
 @Data
 @EqualsAndHashCode(of = {"id"})
+@AllArgsConstructor
+@RequiredArgsConstructor
 public class User {
     private Long id;
     @Email(regexp = ".+[@].+[\\.].+", message = "Некорректный формат электронной почты.")
@@ -23,4 +29,7 @@ public class User {
     @PastOrPresent(message = "Некорректная дата рождения: Дата рождения не должна быть в будущем.")
     @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate birthday;
+    private Set<Long> likedFilms;
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+    private Set<User> friends;
 }

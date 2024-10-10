@@ -123,7 +123,7 @@ class FilmControllerTests {
         filmController.create(film1);
         film1.setName("One");
         film1.setId(2L);
-        assertThrows(DuplicatedDataException.class, () -> filmController.update(film),
+        assertThrows(DuplicatedDataException.class, () -> filmController.update(film1),
                 "Обновление фильма, которое приводит к возникновению дубликата, должна приводить к ошибки");
     }
 
@@ -163,6 +163,7 @@ class FilmControllerTests {
     @Test
     void updateFilmOnNotCorrectRealiseDate() {
         filmController.create(film);
+        System.out.println(filmController.getAll());
         film.setId(1L);
         film.setReleaseDate(LocalDate.of(1000, 2, 1));
         assertThrows(InvalidFormatException.class, () -> filmController.update(film),
@@ -174,5 +175,11 @@ class FilmControllerTests {
         filmController.create(film);
         film.setName("NewFilm");
         assertEquals("NewFilm", filmController.update(film).getName(), "Данные не обновились");
+    }
+
+    @Test
+    void addLikeFilmUnknownUser() {
+        filmController.create(film);
+        assertThrows(NotFoundException.class,() -> filmController.likeFilm(1L, 2L));
     }
 }

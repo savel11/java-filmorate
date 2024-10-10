@@ -1,96 +1,80 @@
 package ru.yandex.practicum.filmorate.controller;
 
 import jakarta.validation.Valid;
-import lombok.extern.slf4j.Slf4j;
+import jakarta.validation.constraints.Positive;
+import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.*;
-import ru.yandex.practicum.filmorate.exception.DuplicatedDataException;
-import ru.yandex.practicum.filmorate.exception.InvalidFormatException;
-import ru.yandex.practicum.filmorate.exception.NotFoundException;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.service.UsersService;
+import ru.yandex.practicum.filmorate.storage.user.InMemoryUserStorage;
+
 
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
+
 
 @RestController
 @RequestMapping("/users")
-@Slf4j
 @Validated
+@RequiredArgsConstructor
 public class UserController {
-    private final Map<Long, User> users = new HashMap<>();
+    private final InMemoryUserStorage inMemoryUserStorage;
+    private final UsersService usersService;
 
     @GetMapping
     public Collection<User> getAll() {
-        return users.values();
+        return inMemoryUserStorage.getAll();
     }
 
     @PostMapping
     public User create(@Valid @RequestBody User user) {
-        log.info("Создаем нового пользователя");
-        log.debug("Пользоваетль: " + user);
-        if (user.getLogin().contains(" ")) {
-            log.warn("Пользователь не был создан: Логин пользователя не должен содержать пробелов");
-            throw new InvalidFormatException("Некорректный формат логина: Логин не должен содержать пробелов.");
-        }
-        if (users.values().stream().map(User::getEmail).anyMatch(email -> user.getEmail().equals(email))) {
-            log.warn("Пользователь не был создан: Пользователь с таким email уже существует");
-            throw new DuplicatedDataException("Этот имейл уже используется");
-        }
-        user.setId(getNextId());
-        if (user.getName() == null || user.getName().isBlank()) {
-            user.setName(user.getLogin());
-        }
-        users.put(user.getId(), user);
-        log.info("Пользователь успешно создан!");
-        return user;
+        return inMemoryUserStorage.create(user);
     }
 
     @PutMapping
     public User update(@Valid @RequestBody User newUser) {
-        log.info("Обновление данных пользователя");
-        log.debug("Пользоваетль: " + newUser);
-        if (newUser.getId() == null) {
-            log.warn("Данные не обновлены: Для обновление нужно указать id пользователя");
-            throw new InvalidFormatException("Id должен быть указан");
-        }
-        if (users.containsKey(newUser.getId())) {
-            User oldUser = users.get(newUser.getId());
-            if (newUser.getLogin().contains(" ")) {
-                log.warn("Данные не были обновленны: Логин пользователя не должен содержать пробелов");
-                throw new InvalidFormatException("Некорректный формат логина: Логин не должен содержать пробелов.");
-            }
-            if (users.values().stream().filter(us -> !us.equals(newUser)).map(User::getEmail)
-                    .anyMatch(email -> email.equals(newUser.getEmail()))) {
-                log.warn("Данные не были обновленны: Пользователь с таким email уже существует");
-                throw new DuplicatedDataException("Этот имейл уже используется");
-            }
-            oldUser.setLogin(newUser.getLogin());
-            oldUser.setEmail(newUser.getEmail());
-            oldUser.setBirthday(newUser.getBirthday());
-            if ((newUser.getName() == null || newUser.getName().isBlank())) {
-                oldUser.setName(newUser.getLogin());
-            } else {
-                oldUser.setName(newUser.getName());
-            }
-            log.info("Данные пользователя успешно обновленны");
-            return oldUser;
-        }
-        log.warn("Данные не обновлены: Пользователя с id = " + newUser.getId() + " не существует");
-        throw new NotFoundException("Пользователь с id = " + newUser.getId() + " не найден");
+        return inMemoryUserStorage.update(newUser);
     }
 
     @DeleteMapping
     public void deleteAll() {
-        users.clear();
+        inMemoryUserStorage.deleteAll();
     }
 
-    private long getNextId() {
-        long currentMaxId = users.keySet()
-                .stream()
-                .mapToLong(id -> id)
-                .max()
-                .orElse(0);
-        return ++currentMaxId;
+    @GetMapping("/{userId}")
+    public User getUserById(@PathVariable @Positive Long userId) {
+        return inMemoryUserStorage.getUserById(userId);
+    }
+
+    @DeleteMapping("/{userId}")
+    public void deleteUserById(@PathVariable @Positive Long userId) {
+        inMemoryUserStorage.deleteUserById(userId);
+    }
+
+    @PutMapping("/{id}/friends/{friendId}")
+    public User addFriend(@PathVariable @Positive Long id, @PathVariable @Positive Long friendId) {
+        return usersService.addFriend(id, friendId);
+    }
+
+    @DeleteMapping("/{id}/friends/{friendId}")
+    public void deletedFriend(@PathVariable @Positive Long id, @PathVariable @Positive Long friendId) {
+        usersService.deleteFriend(id, friendId);
+    }
+
+    @GetMapping("/{id}/friends")
+    public Collection<User> getFriends(@PathVariable @Positive Long id) {
+        return usersService.getFriends(id);
+    }
+
+    @GetMapping("/{id}/friends/common/{otherId}")
+    public Collection<User> getCommonFriends(@PathVariable @Positive Long id, @PathVariable @Positive Long otherId) {
+        return usersService.getCommonFriends(id, otherId);
     }
 }
