@@ -34,9 +34,9 @@ public class InMemoryFilmStorage implements FilmStorage {
 
     @Override
     public boolean isDuplicateForUpdated(UpdateFilmDto film) {
-        return films.values().stream().filter(f -> !f.equals(films.get(film.getId()))).anyMatch(f -> f.getName().
-                equals(film.getName()) && f.getReleaseDate().isEqual(film.getReleaseDate()) && f.getDuration().
-                equals(film.getDuration()));
+        return films.values().stream().filter(f -> !f.equals(films.get(film.getId()))).anyMatch(f -> f.getName()
+                .equals(film.getName()) && f.getReleaseDate().isEqual(film.getReleaseDate()) && f.getDuration()
+                .equals(film.getDuration()));
     }
 
     @Override
@@ -114,8 +114,8 @@ public class InMemoryFilmStorage implements FilmStorage {
 
     @Override
     public Optional<FavoriteFilms> getFavoriteFilmById(Long filmId, Long userId) {
-        return inMemoryUserStorage.getUserById(userId).get().getLikedFilms().stream().filter(f -> f.getFilmId().
-                equals(filmId) && f.getUserId().equals(userId)).findFirst();
+        return inMemoryUserStorage.getUserById(userId).get().getLikedFilms().stream().filter(f -> f.getFilmId()
+                .equals(filmId) && f.getUserId().equals(userId)).findFirst();
     }
 
     @Override
