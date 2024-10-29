@@ -1,88 +1,42 @@
 package ru.yandex.practicum.filmorate.storage.film;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
-import ru.yandex.practicum.filmorate.exception.DuplicatedDataException;
-import ru.yandex.practicum.filmorate.exception.InvalidFormatException;
-import ru.yandex.practicum.filmorate.exception.NotFoundException;
+import ru.yandex.practicum.filmorate.dto.film.UpdateFilmDto;
+import ru.yandex.practicum.filmorate.model.FavoriteFilms;
 import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.model.FilmGenre;
+import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.storage.user.InMemoryUserStorage;
 
-import java.time.Duration;
-import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Component
+@Qualifier("InMemoryFilmStorage")
 @Slf4j
+@RequiredArgsConstructor
 public class InMemoryFilmStorage implements FilmStorage {
+    private final InMemoryUserStorage inMemoryUserStorage;
     private final Map<Long, Film> films = new HashMap<>();
-    private static final LocalDate MIN_DATA = LocalDate.of(1895, 12, 28);
-    private int id = 0;
+    private long id = 0;
 
     private Long generatedId() {
-        return (long) ++id;
+        return ++id;
     }
 
-    private void checkDuplicatedFilmForCreate(Film film) {
-        if (films.values().stream().anyMatch(f -> f.getName().equals(film.getName()) &&
-                f.getReleaseDate().isEqual(film.getReleaseDate()) && f.getDuration().equals(film.getDuration()))) {
-            log.warn("Фильм не был добавлен: Такой фильм уже есть");
-            throw new DuplicatedDataException("Фильм уже был добавлен");
-        }
-    }
-
-    private void checkDuplicatedFilmForUpdate(Film film) {
-        if (films.values().stream().filter(f -> !f.equals(film)).anyMatch(f -> f.getName().equals(film.getName()) &&
-                f.getReleaseDate().isEqual(film.getReleaseDate()) && f.getDuration().equals(film.getDuration()))) {
-            log.warn("Фильм не был добавлен: Такой фильм уже есть");
-            throw new DuplicatedDataException("Фильм уже был добавлен");
-        }
-    }
-
-    private void checkBeforeMinData(LocalDate releaseDate) {
-        if (MIN_DATA.isAfter(releaseDate)) {
-            log.warn("Фильм не был добавлен: Дата релиза фильма должна быть не раньше 28 декабря 1895 года");
-            throw new InvalidFormatException("Некорректный формат даты релиза: Дата релиза должна быть не раньше 28 декабря 1895 года");
-        }
-    }
-
-    private void checkNegativeDuration(Duration duration) {
-        if (!duration.isPositive()) {
-            log.warn("Фильм не был добавлен: Продолжительность не должна быть отрицательным числом");
-            throw new InvalidFormatException("Некорректный формат продолжительности фильма: Продолжительность фильма " +
-                    "должна быть положителным числом ");
-        }
-    }
-
-    private void validatedFilmForCreate(Film film) {
-        log.trace("Валидация для создания нового фильма: " + film);
-        log.trace("Проверка на дубликат");
-        checkDuplicatedFilmForCreate(film);
-        log.trace("Проверка даты релиза:" + film.getReleaseDate());
-        checkBeforeMinData(film.getReleaseDate());
-        log.trace("Проверка продолжительности:" + film.getDuration());
-        checkNegativeDuration(film.getDuration());
-    }
-
-    private void validatedFilmForUpdate(Film film) {
-        log.trace("Валидация для обновления фильма: " + film);
-        log.trace("Проверка id фильма: " + film.getId());
-        if (film.getId() == null) {
-            log.warn("Данные не обновленны: Для обновленние нужно указать id фильма");
-            throw new InvalidFormatException("Id должен быть указан");
-        }
-        checkAvailabilityOfFilm(film.getId());
-        checkDuplicatedFilmForUpdate(film);
-        checkBeforeMinData(film.getReleaseDate());
-        checkNegativeDuration(film.getDuration());
-    }
-
-    private void checkAvailabilityOfFilm(Long id) {
-        if (!films.containsKey(id)) {
-            log.warn("Фильм с указанным id не найден");
-            throw new NotFoundException("Фильм с id = " + id + " не найден");
-        }
+    @Override
+    public boolean isDuplicateForUpdated(UpdateFilmDto film) {
+        return films.values().stream().filter(f -> !f.equals(films.get(film.getId()))).anyMatch(f -> f.getName().
+                equals(film.getName()) && f.getReleaseDate().isEqual(film.getReleaseDate()) && f.getDuration().
+                equals(film.getDuration()));
     }
 
     @Override
@@ -92,48 +46,85 @@ public class InMemoryFilmStorage implements FilmStorage {
 
     @Override
     public Film create(Film film) {
-        log.info("Добавляем новый фильм");
-        log.debug("Фильм: " + film);
-        validatedFilmForCreate(film);
         film.setId(generatedId());
-        films.put(film.getId(), new Film(film.getId(), film.getName(), film.getDescription(), film.getReleaseDate(), film.getDuration(), 0L));
-        log.info("Фильм успешно добавлен!");
+        films.put(film.getId(), new Film(film.getId(), film.getName(), film.getDescription(), film.getReleaseDate(),
+                film.getDuration(), 0L, new ArrayList<>(), film.getRatingId()));
         return film;
     }
 
     @Override
     public Film update(Film newFilm) {
-        log.info("Обновляем данные о фильме");
-        log.debug("Фильм: " + newFilm);
-        validatedFilmForUpdate(newFilm);
         Film oldFilm = films.get(newFilm.getId());
         newFilm.setLikes(oldFilm.getLikes());
         films.put(newFilm.getId(), newFilm);
-        log.info("Данные успешно обновленны!");
         return newFilm;
     }
 
-    public Film updateCountLikes(Film film) {
+    public void updateCountLikes(Film film) {
         films.put(film.getId(), film);
-        return film;
     }
 
     @Override
-    public void deleteAll() {
-        films.clear();
-        id = 0;
+    public Optional<Film> getFilmById(Long id) {
+        if (films.containsKey(id)) {
+            return Optional.of(new Film(films.get(id).getId(), films.get(id).getName(),
+                    films.get(id).getDescription(), films.get(id).getReleaseDate(), films.get(id).getDuration(),
+                    films.get(id).getLikes(), films.get(id).getFilmGenres(), films.get(id).getRatingId()));
+        }
+        return Optional.empty();
     }
 
     @Override
-    public Film getFilmById(Long id) {
-        checkAvailabilityOfFilm(id);
-        return new Film(films.get(id).getId(), films.get(id).getName(), films.get(id).getDescription(), films.get(id).getReleaseDate(), films.get(id).getDuration(),
-                films.get(id).getLikes());
+    public boolean deleteFilmById(Long id) {
+        return films.remove(id) != null;
     }
 
     @Override
-    public void deleteFilmById(Long id) {
-        checkAvailabilityOfFilm(id);
-        films.remove(id);
+    public void addFilmGenre(Long filmId, List<Long> genreId) {
+        genreId.forEach(el -> films.get(filmId).getFilmGenres().add(new FilmGenre(filmId, el)));
+    }
+
+    @Override
+    public boolean deleteFilmGenre(Long filmId, Long genreId) {
+        return films.get(filmId).getFilmGenres().remove(new FilmGenre(filmId, genreId));
+    }
+
+    @Override
+    public void addFavoriteFilm(Film film, User user) {
+        FavoriteFilms favoriteFilms = new FavoriteFilms();
+        favoriteFilms.setFilmId(film.getId());
+        favoriteFilms.setUserId(user.getId());
+        user.getLikedFilms().add(favoriteFilms);
+        inMemoryUserStorage.updateLikesFilms(user);
+        film.setLikes(film.getLikes() + 1);
+        updateCountLikes(film);
+    }
+
+    @Override
+    public void deleteFavoriteFilm(Film film, User user) {
+        FavoriteFilms favoriteFilms = new FavoriteFilms();
+        favoriteFilms.setFilmId(film.getId());
+        favoriteFilms.setUserId(user.getId());
+        user.getLikedFilms().remove(favoriteFilms);
+        film.setLikes(film.getLikes() - 1);
+        inMemoryUserStorage.updateLikesFilms(user);
+        updateCountLikes(film);
+    }
+
+
+    @Override
+    public Optional<FavoriteFilms> getFavoriteFilmById(Long filmId, Long userId) {
+        return inMemoryUserStorage.getUserById(userId).get().getLikedFilms().stream().filter(f -> f.getFilmId().
+                equals(filmId) && f.getUserId().equals(userId)).findFirst();
+    }
+
+    @Override
+    public List<Film> getPopularFilm(int count) {
+        return films.values().stream().sorted(Comparator.comparing(Film::getLikes).reversed()).limit(count).toList();
+    }
+
+    @Override
+    public List<FilmGenre> getFilmGenresByFilmId(Long filmId) {
+        return films.get(filmId).getFilmGenres();
     }
 }
