@@ -198,8 +198,8 @@ public class FilmoRateApplicationTests {
         Film film = filmRepository.create(createFilmForTest());
         filmGenreRepository.addFilmGenre(film.getId(), 1L);
         Optional<FilmGenre> filmGenreOptional = filmGenreRepository.getFilmGenreByID(film.getId(), 1L);
-        assertThat(filmGenreOptional).isPresent().hasValueSatisfying(fg -> assertThat(fg).
-                hasFieldOrPropertyWithValue("id", 1L));
+        assertThat(filmGenreOptional).isPresent().hasValueSatisfying(fg -> assertThat(fg)
+                .hasFieldOrPropertyWithValue("id", 1L));
     }
 
     @Test
@@ -228,10 +228,10 @@ public class FilmoRateApplicationTests {
         favoriteFilmsRepository.addFavoriteFilm(user.getId(), film.getId());
         Optional<FavoriteFilms> favoriteFilmsOptional = favoriteFilmsRepository.findFavoriteFilm(user.getId(),
                 film.getId());
-        assertThat(favoriteFilmsOptional).isPresent().hasValueSatisfying(ff -> assertThat(ff).
-                hasFieldOrPropertyWithValue("filmId", film.getId()));
-        assertThat(favoriteFilmsOptional).isPresent().hasValueSatisfying(ff -> assertThat(ff).
-                hasFieldOrPropertyWithValue("userId", user.getId()));
+        assertThat(favoriteFilmsOptional).isPresent().hasValueSatisfying(ff -> assertThat(ff)
+                .hasFieldOrPropertyWithValue("filmId", film.getId()));
+        assertThat(favoriteFilmsOptional).isPresent().hasValueSatisfying(ff -> assertThat(ff)
+                .hasFieldOrPropertyWithValue("userId", user.getId()));
     }
 
     @Test
@@ -256,10 +256,10 @@ public class FilmoRateApplicationTests {
     @Test
     public void testFindGenreByID() {
         Optional<Genre> optionalGenre = genreStorage.getGenreById(1L);
-        assertThat(optionalGenre).isPresent().hasValueSatisfying(g -> assertThat(g).
-                hasFieldOrPropertyWithValue("id", 1L));
-        assertThat(optionalGenre).isPresent().hasValueSatisfying(g -> assertThat(g).
-                hasFieldOrPropertyWithValue("name", "Комедия"));
+        assertThat(optionalGenre).isPresent().hasValueSatisfying(g -> assertThat(g)
+                .hasFieldOrPropertyWithValue("id", 1L));
+        assertThat(optionalGenre).isPresent().hasValueSatisfying(g -> assertThat(g)
+                .hasFieldOrPropertyWithValue("name", "Комедия"));
     }
 
     @Test
@@ -290,10 +290,10 @@ public class FilmoRateApplicationTests {
     @Test
     public void testFindRatingById() {
         Optional<FilmRating> filmRating = ratingDbStorage.getFilmRatingById(1);
-        assertThat(filmRating).isPresent().hasValueSatisfying(fr -> assertThat(fr).
-                hasFieldOrPropertyWithValue("id", 1));
-        assertThat(filmRating).isPresent().hasValueSatisfying(fr -> assertThat(fr).
-                hasFieldOrPropertyWithValue("name", Rating.G));
+        assertThat(filmRating).isPresent().hasValueSatisfying(fr -> assertThat(fr)
+                .hasFieldOrPropertyWithValue("id", 1));
+        assertThat(filmRating).isPresent().hasValueSatisfying(fr -> assertThat(fr)
+                .hasFieldOrPropertyWithValue("name", Rating.G));
     }
 
     @Test
@@ -314,10 +314,10 @@ public class FilmoRateApplicationTests {
         friendshipsRepository.request(user.getId(), friend.getId());
         Optional<Friendships> userFriendships = friendshipsRepository.getFriend(user.getId(), friend.getId());
         User finalUser = friend;
-        assertThat(userFriendships).isPresent().hasValueSatisfying(ff -> assertThat(ff).
-                hasFieldOrPropertyWithValue("userId2", finalUser.getId()));
-        assertThat(userFriendships).isPresent().hasValueSatisfying(ff -> assertThat(ff).
-                hasFieldOrPropertyWithValue("status", Status.Unconfirmed));
+        assertThat(userFriendships).isPresent().hasValueSatisfying(ff -> assertThat(ff)
+                .hasFieldOrPropertyWithValue("userId2", finalUser.getId()));
+        assertThat(userFriendships).isPresent().hasValueSatisfying(ff -> assertThat(ff)
+                .hasFieldOrPropertyWithValue("status", Status.Unconfirmed));
     }
 
     @Test
@@ -334,10 +334,10 @@ public class FilmoRateApplicationTests {
         friendshipsRepository.addFriend(user.getId(), friend.getId());
         Optional<Friendships> userFriendships = friendshipsRepository.getFriend(user.getId(), friend.getId());
         User finalUser = friend;
-        assertThat(userFriendships).isPresent().hasValueSatisfying(ff -> assertThat(ff).
-                hasFieldOrPropertyWithValue("userId2", finalUser.getId()));
-        assertThat(userFriendships).isPresent().hasValueSatisfying(ff -> assertThat(ff).
-                hasFieldOrPropertyWithValue("status", Status.Confirmed));
+        assertThat(userFriendships).isPresent().hasValueSatisfying(ff -> assertThat(ff)
+                .hasFieldOrPropertyWithValue("userId2", finalUser.getId()));
+        assertThat(userFriendships).isPresent().hasValueSatisfying(ff -> assertThat(ff)
+                .hasFieldOrPropertyWithValue("status", Status.Confirmed));
     }
 
     @Test
@@ -355,10 +355,10 @@ public class FilmoRateApplicationTests {
         friendshipsRepository.updateStatus(user.getId(), friend.getId());
         Optional<Friendships> userFriendships = friendshipsRepository.getFriend(user.getId(), friend.getId());
         User finalUser = friend;
-        assertThat(userFriendships).isPresent().hasValueSatisfying(ff -> assertThat(ff).
-                hasFieldOrPropertyWithValue("userId2", finalUser.getId()));
-        assertThat(userFriendships).isPresent().hasValueSatisfying(ff -> assertThat(ff).
-                hasFieldOrPropertyWithValue("status", Status.Unconfirmed));
+        assertThat(userFriendships).isPresent().hasValueSatisfying(ff -> assertThat(ff)
+                .hasFieldOrPropertyWithValue("userId2", finalUser.getId()));
+        assertThat(userFriendships).isPresent().hasValueSatisfying(ff -> assertThat(ff)
+                .hasFieldOrPropertyWithValue("status", Status.Unconfirmed));
     }
 
     @Test
@@ -421,8 +421,8 @@ public class FilmoRateApplicationTests {
         friendshipsRepository.request(friend1.getId(), friend.getId());
         friendshipsRepository.addFriend(friend1.getId(), friend.getId());
         assertEquals(1, friendshipsRepository.getCommonFriend(user.getId(), friend1.getId()).size());
-        assertEquals(friend.getId(), friendshipsRepository.getCommonFriend(user.getId(), friend1.getId()).getFirst().
-                getUserId2());
+        assertEquals(friend.getId(), friendshipsRepository.getCommonFriend(user.getId(), friend1.getId()).getFirst()
+                .getUserId2());
     }
 
     private Film createFilmForTest() {
