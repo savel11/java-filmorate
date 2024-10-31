@@ -2,50 +2,50 @@ package ru.yandex.practicum.filmorate.storage.user;
 
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
-import ru.yandex.practicum.filmorate.exception.DuplicatedDataException;
-import ru.yandex.practicum.filmorate.exception.InvalidFormatException;
+import ru.yandex.practicum.filmorate.dto.user.UpdateUserDto;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
+import ru.yandex.practicum.filmorate.model.Friendships;
+import ru.yandex.practicum.filmorate.model.Status;
 import ru.yandex.practicum.filmorate.model.User;
 
-import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Component
+@Qualifier("InMemoryUserStorage")
 @Slf4j
 public class InMemoryUserStorage implements UserStorage {
     private final Map<Long, User> users = new HashMap<>();
     private Long id = 0L;
 
     private Long generatedId() {
-        return (long) ++id;
+        return ++id;
     }
 
     @Override
-    public Collection<User> getAll() {
-        return users.values();
+    public List<User> getAll() {
+        return users.values().stream().toList();
     }
 
     @Override
-    public User create(User newUser) {
-        log.info("Создаем нового пользователя");
-        log.debug("Пользоваетль: " + newUser);
-        User user = validateUserForCreate(newUser);
+    public User create(User user) {
         user.setId(generatedId());
         users.put(user.getId(), new User(user.getId(), user.getEmail(), user.getLogin(), user.getName(),
-                user.getBirthday(), new HashSet<Long>(), new HashSet<User>()));
-        log.info("Пользователь успешно создан!");
+                user.getBirthday(), new HashSet<>(), new HashSet<>()));
         return user;
     }
 
     @Override
-    public User update(User newUser) {
-        log.info("Обновление данных пользователя");
-        log.debug("Пользоваетль: " + newUser);
-        User oldUser = users.get(newUser.getId());
-        User user = validateUserForUpdate(newUser);
+    public User update(User user) {
+        User oldUser = users.get(user.getId());
         user.setFriends(oldUser.getFriends());
         user.setLikedFilms(oldUser.getLikedFilms());
         users.put(user.getId(), new User(user.getId(), user.getEmail(), user.getLogin(),
@@ -53,64 +53,91 @@ public class InMemoryUserStorage implements UserStorage {
         return user;
     }
 
-    @Override
-    public void deleteAll() {
-        users.clear();
-        id = 0L;
-    }
 
     @Override
-    public User getUserById(Long id) {
+    public Optional<User> getUserById(Long id) {
         checkAvailabilityOfUser(id);
         User user = users.get(id);
-        return new User(user.getId(), user.getEmail(), user.getLogin(), user.getName(),
-                user.getBirthday(), user.getLikedFilms(), user.getFriends());
+        return Optional.of(new User(user.getId(), user.getEmail(), user.getLogin(), user.getName(),
+                user.getBirthday(), user.getLikedFilms(), user.getFriends()));
     }
 
     @Override
-    public void deleteUserById(Long id) {
+    public boolean deleteUserById(Long id) {
         checkAvailabilityOfUser(id);
-        users.remove(id);
+        return users.remove(id) != null;
     }
 
-    public void updateFriends(User user, User newUser) {
+    @Override
+    public void updateStatusOnConfirmed(User user1, User user2) {
+        user2.getFriends().remove(new Friendships(user2.getId(), user1.getId(), Status.UNCONFIRMED));
+        user2.getFriends().add(new Friendships(user2.getId(), user1.getId(), Status.CONFIRMED));
+        updateFriends(user2);
+    }
+
+
+    @Override
+    public void request(User user1, User user2) {
+        Friendships friendships = new Friendships(user1.getId(), user2.getId(), Status.UNCONFIRMED);
+        user1.getFriends().add(friendships);
+        user2.getFriends().add(new Friendships(user2.getId(), user1.getId(), Status.CONFIRMED));
+        updateFriends(user1);
+        updateFriends(user2);
+    }
+
+    @Override
+    public void updateStatusOnUnconfirmed(User user1, User user2) {
+        user2.getFriends().remove(new Friendships(user2.getId(), user1.getId(), Status.CONFIRMED));
+        user2.getFriends().add(new Friendships(user2.getId(), user1.getId(), Status.UNCONFIRMED));
+        updateFriends(user2);
+    }
+
+    @Override
+    public Optional<User> getUserByEmail(String email) {
+        return Optional.empty();
+    }
+
+    @Override
+    public void deleteFriend(User user1, User user2) {
+        user2.getFriends().remove(new Friendships(user2.getId(), user1.getId(), Status.UNCONFIRMED));
+        updateFriends(user2);
+    }
+
+    @Override
+    public List<User> getAllFriend(Long userId1) {
+        return users.get(userId1).getFriends().stream().filter(f -> f.getStatus().equals(Status.CONFIRMED))
+                .map(f -> getUserById(f.getId()).get()).toList();
+    }
+
+    @Override
+    public Optional<Friendships> getFriend(Long userId1, Long userId2) {
+        return users.get(userId1).getFriends().stream().filter(f -> f.getId().equals(userId2) &&
+                f.getStatus().equals(Status.CONFIRMED)).findFirst();
+    }
+
+    @Override
+    public List<User> getCommonFriend(Long userId1, Long userId2) {
+        Set<Friendships> friendsUser1 = users.get(userId1).getFriends().stream().filter(f -> f.getStatus().equals(
+                Status.CONFIRMED)).collect(Collectors.toSet());
+        Set<Friendships> friendsUser2 = users.get(userId2).getFriends().stream().filter(f -> f.getStatus().equals(
+                Status.CONFIRMED)).collect(Collectors.toSet());
+        if (friendsUser1.isEmpty() || friendsUser2.isEmpty()) {
+            return Collections.emptyList();
+        }
+        Set<Friendships> commonFriends = new HashSet<>(friendsUser1);
+        if (commonFriends.retainAll(friendsUser2)) {
+            return commonFriends.stream().map(f -> getUserById(f.getId()).get()).toList();
+        }
+        return Collections.emptyList();
+    }
+
+
+    public void updateFriends(User user) {
         users.put(user.getId(), user);
-        users.put(newUser.getId(), newUser);
     }
 
     public void updateLikesFilms(User user) {
         users.put(user.getId(), user);
-    }
-
-    private void checkLogin(String login) {
-        if (login.contains(" ")) {
-            log.warn("Пользователь не был создан: Логин пользователя не должен содержать пробелов");
-            throw new InvalidFormatException("Некорректный формат логина: Логин не должен содержать пробелов.");
-        }
-    }
-
-    private void checkDuplicatedEmailForCreated(String email) {
-        if (users.values().stream().map(User::getEmail).anyMatch(e -> e.equals(email))) {
-            log.warn("Пользователь не был создан: Пользователь с таким email уже существует");
-            throw new DuplicatedDataException("Этот имейл уже используется");
-        }
-    }
-
-    private void checkDuplicatedEmailForUpdate(User user) {
-        if (users.values().stream().filter(u -> !u.equals(user)).map(User::getEmail).anyMatch(e -> e.equals(user.getEmail()))) {
-            log.warn("Данные не были обновленны: Пользователь с таким email уже существует");
-            throw new DuplicatedDataException("Этот имейл уже используется");
-        }
-    }
-
-    private User validatedName(User user) {
-        log.trace("Проверка имени пользователя: " + user.getName());
-        if (user.getName() == null || user.getName().isBlank()) {
-            user.setName(user.getLogin());
-            log.trace("Имя пользователя изменяем на его логин: " + user.getName());
-            return user;
-        }
-        return user;
     }
 
     private void checkAvailabilityOfUser(Long id) {
@@ -120,26 +147,9 @@ public class InMemoryUserStorage implements UserStorage {
         }
     }
 
-    private User validateUserForCreate(User user) {
-        log.trace("Валидация для создания нового пользователя: " + user);
-        log.trace("Проверка корректности логина: " + user.getLogin());
-        checkLogin(user.getLogin());
-        log.trace("Проверка на дубликат email: " + user.getEmail());
-        checkDuplicatedEmailForCreated(user.getEmail());
-        return validatedName(user);
-    }
-
-    private User validateUserForUpdate(User user) {
-        log.trace("Валидация для обновления  пользователя:" + user);
-        if (user.getId() == null) {
-            log.warn("Данные не обновлены: Для обновление нужно указать id пользователя");
-            throw new InvalidFormatException("Id должен быть указан");
-        }
-        checkAvailabilityOfUser(user.getId());
-        log.trace("Проверка корректности логина: " + user.getLogin());
-        checkLogin(user.getLogin());
-        log.trace("Проверка на дубликат email: " + user.getEmail());
-        checkDuplicatedEmailForUpdate(user);
-        return validatedName(user);
+    @Override
+    public boolean isDuplicateEmailForUpdate(UpdateUserDto updateUserDto) {
+        return users.values().stream().filter(u -> !u.equals(users.get(updateUserDto.getId())))
+                .map(User::getEmail).anyMatch(e -> e.equals(updateUserDto.getEmail()));
     }
 }
