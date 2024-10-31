@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
-import ru.yandex.practicum.filmorate.model.FilmGenre;
+import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.serializers.CustomDurationSerializer;
 
 import java.time.Duration;
@@ -22,7 +22,7 @@ public class UpdateFilmDto {
     @JsonFormat(pattern = "MINUTES")
     @JsonSerialize(using = CustomDurationSerializer.class)
     private Duration duration;
-    private List<FilmGenre> genres;
+    private List<Genre> genres;
     private int rate;
 
     public boolean hasName() {

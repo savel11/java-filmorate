@@ -15,7 +15,7 @@ public class FilmGenreRepository extends BaseRepository<FilmGenre> {
     private static final String FIND_FILM_GENRE_BY_ID_QUERY = "SELECT * from film_genre WHERE film_id = ? AND " +
             "genre_id = ?";
     private static final String FIND_FILM_ALL_GENRE_BY_ID_QUERY = "SELECT * from film_genre WHERE film_id = ?";
-    private static final String DELETE_QUERY = "DELETE FROM film_genre WHERE film_id = ? AND genre_id = ?";
+    private static final String DELETE_QUERY = "DELETE FROM film_genre WHERE film_id = ?";
 
     public FilmGenreRepository(JdbcTemplate jdbc, RowMapper<FilmGenre> mapper) {
         super(jdbc, mapper, FilmGenre.class);
@@ -36,7 +36,7 @@ public class FilmGenreRepository extends BaseRepository<FilmGenre> {
         return findMany(FIND_FILM_ALL_GENRE_BY_ID_QUERY, filmId);
     }
 
-    public boolean deleteFilmGenre(Long filmId, Long genreId) {
-        return delete(DELETE_QUERY, filmId, genreId);
+    public boolean deleteFilmGenre(Long filmId) {
+        return delete(DELETE_QUERY, filmId);
     }
 }

@@ -4,10 +4,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
-import ru.yandex.practicum.filmorate.dto.film.UpdateFilmDto;
 import ru.yandex.practicum.filmorate.model.FavoriteFilms;
 import ru.yandex.practicum.filmorate.model.Film;
-import ru.yandex.practicum.filmorate.model.FilmGenre;
+import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.user.InMemoryUserStorage;
 
@@ -32,12 +31,7 @@ public class InMemoryFilmStorage implements FilmStorage {
         return ++id;
     }
 
-    @Override
-    public boolean isDuplicateForUpdated(UpdateFilmDto film) {
-        return films.values().stream().filter(f -> !f.equals(films.get(film.getId()))).anyMatch(f -> f.getName()
-                .equals(film.getName()) && f.getReleaseDate().isEqual(film.getReleaseDate()) && f.getDuration()
-                .equals(film.getDuration()));
-    }
+
 
     @Override
     public Collection<Film> getAll() {
@@ -48,7 +42,7 @@ public class InMemoryFilmStorage implements FilmStorage {
     public Film create(Film film) {
         film.setId(generatedId());
         films.put(film.getId(), new Film(film.getId(), film.getName(), film.getDescription(), film.getReleaseDate(),
-                film.getDuration(), 0L, new ArrayList<>(), film.getRatingId()));
+                film.getDuration(), 0L, new ArrayList<>(), film.getRating()));
         return film;
     }
 
@@ -69,7 +63,7 @@ public class InMemoryFilmStorage implements FilmStorage {
         if (films.containsKey(id)) {
             return Optional.of(new Film(films.get(id).getId(), films.get(id).getName(),
                     films.get(id).getDescription(), films.get(id).getReleaseDate(), films.get(id).getDuration(),
-                    films.get(id).getLikes(), films.get(id).getFilmGenres(), films.get(id).getRatingId()));
+                    films.get(id).getLikes(), films.get(id).getFilmGenres(), films.get(id).getRating()));
         }
         return Optional.empty();
     }
@@ -79,14 +73,15 @@ public class InMemoryFilmStorage implements FilmStorage {
         return films.remove(id) != null;
     }
 
-    @Override
+   @Override
     public void addFilmGenre(Long filmId, List<Long> genreId) {
-        genreId.forEach(el -> films.get(filmId).getFilmGenres().add(new FilmGenre(filmId, el)));
+        genreId.forEach(el -> films.get(filmId).getFilmGenres().add(new Genre(el, null)));
     }
 
     @Override
-    public boolean deleteFilmGenre(Long filmId, Long genreId) {
-        return films.get(filmId).getFilmGenres().remove(new FilmGenre(filmId, genreId));
+    public boolean deleteFilmGenre(Long filmId) {
+        films.get(filmId).getFilmGenres().clear();
+        return films.get(filmId).getFilmGenres().isEmpty();
     }
 
     @Override
@@ -121,10 +116,5 @@ public class InMemoryFilmStorage implements FilmStorage {
     @Override
     public List<Film> getPopularFilm(int count) {
         return films.values().stream().sorted(Comparator.comparing(Film::getLikes).reversed()).limit(count).toList();
-    }
-
-    @Override
-    public List<FilmGenre> getFilmGenresByFilmId(Long filmId) {
-        return films.get(filmId).getFilmGenres();
     }
 }

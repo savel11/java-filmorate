@@ -11,12 +11,14 @@ import ru.yandex.practicum.filmorate.exception.DuplicatedDataException;
 import ru.yandex.practicum.filmorate.exception.InvalidFormatException;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.mapper.UserMapper;
+import ru.yandex.practicum.filmorate.model.Friendships;
 import ru.yandex.practicum.filmorate.model.Status;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -53,35 +55,14 @@ public class UsersService {
             log.warn("Данные не обновлены: Для обновление нужно указать id пользователя");
             throw new InvalidFormatException("Id должен быть указан");
         }
-        checkExistUserByID(updateUserDto.getId());
-        User user = userStorage.getUserById(updateUserDto.getId()).get();
-        if (updateUserDto.hasEmail()) {
-            log.trace("Проверяем свободно ли новая почта");
-            if (userStorage.isDuplicateEmailForUpdate(updateUserDto)) {
-                log.warn("Пользователь не был обновлен: Пользователь с таким email уже существует");
-                throw new DuplicatedDataException("Этот имейл уже используется");
-            }
-            log.trace("Почта свободно");
-            user.setEmail(updateUserDto.getEmail());
-        }
-        if (updateUserDto.hasLogin()) {
-            checkLogin(updateUserDto.getLogin());
-            user.setLogin(updateUserDto.getLogin());
-        }
-        if (updateUserDto.hasName()) {
-            user.setName(updateUserDto.getName());
-        }
-        if (updateUserDto.hasBirthday()) {
-            user.setBirthday(updateUserDto.getBirthday());
-        }
+        User user = validationUpdateUser(updateUserDto);
         log.trace("Данные пользователя успешно обновленны");
         user = userStorage.update(user);
         return UserMapper.mapToUserDto(user);
     }
 
     public UserDto getUserById(Long userId) {
-        checkExistUserByID(userId);
-        return UserMapper.mapToUserDto(userStorage.getUserById(userId).get());
+        return UserMapper.mapToUserDto(checkExistUserByID(userId));
     }
 
     public void deleteUserById(Long userId) {
@@ -92,48 +73,49 @@ public class UsersService {
     }
 
     public UserDto addFriend(Long userId1, Long userId2) {
-        checkExistUserByID(userId1);
-        checkExistUserByID(userId2);
+        User user1 = checkExistUserByID(userId1);
+        User user2 = checkExistUserByID(userId2);
         log.trace("Проверяем есть ли пользоваетель c id " + userId1 + " в друзьях у пользоваетля с id " + userId2);
-        if (userStorage.getFriend(userId2, userId1).isPresent()) {
+        Optional<Friendships> friendships = userStorage.getFriend(userId2, userId1);
+        if (friendships.isPresent()) {
             log.trace("Проверяем статус заявки");
-            if (userStorage.getFriend(userId2, userId1).get().getStatus().equals(Status.Confirmed)) {
+            if (friendships.get().getStatus().equals(Status.CONFIRMED)) {
                 log.warn("Заявка уже была отправлена");
                 throw new DuplicatedDataException("Пользователь уже получил заявку в друзья");
             }
-            if (userStorage.getFriend(userId2, userId1).get().getStatus().equals(Status.Unconfirmed)) {
+            if (friendships.get().getStatus().equals(Status.UNCONFIRMED)) {
                 log.trace("Пользователь оставлял заявку на дружбу с вами");
                 log.trace("Подтверждаем дружбу");
-                userStorage.addFriend(userStorage.getUserById(userId1).get(), userStorage.getUserById(userId2).get());
+                userStorage.updateStatusOnConfirmed(user1, user2);
                 log.trace("Дружба подтверждена");
-                return UserMapper.mapToUserDto(userStorage.getUserById(userId2).get());
+                return UserMapper.mapToUserDto(user2);
             }
         }
         log.trace("Отправляем запрос на дружбу");
-        userStorage.request(userStorage.getUserById(userId2).get(), userStorage.getUserById(userId1).get());
+        userStorage.request(user2, user1);
         log.trace("Запрос отправлен");
-        return UserMapper.mapToUserDto(userStorage.getUserById(userId2).get());
+        return UserMapper.mapToUserDto(user2);
     }
 
     public void deleteFriend(Long userId1, Long userId2) {
-        checkExistUserByID(userId1);
-        checkExistUserByID(userId2);
+        User user1 = checkExistUserByID(userId1);
+        User user2 = checkExistUserByID(userId2);
         log.trace("Проверяем статус дружбы");
-        if (userStorage.getFriend(userId2, userId1).isEmpty()) {
+        Optional<Friendships> friendships = userStorage.getFriend(userId2, userId1);
+        if (friendships.isEmpty()) {
             log.trace("Пользователь не является другом, удалять ничего не надо");
             return;
         }
-        if (userStorage.getFriend(userId2, userId1).get().getStatus().equals(Status.Confirmed)) {
+        if (friendships.get().getStatus().equals(Status.CONFIRMED)) {
             log.trace("Пользователь в друзьях у пользователя");
-            userStorage.updateStatus(userStorage.getUserById(userId2).get(), userStorage.getUserById(userId1).get());
+            userStorage.updateStatusOnUnconfirmed(user2, user1);
             log.trace("Переместили пользователя в подписчики");
             return;
         }
-        if (userStorage.getFriend(userId2, userId1).get().getStatus().equals(Status.Unconfirmed)) {
+        if (friendships.get().getStatus().equals(Status.UNCONFIRMED)) {
             log.trace("Пользователь подписан на пользователя");
-            userStorage.updateStatus(userStorage.getUserById(userId1).get(), userStorage.getUserById(userId2).get());
-            userStorage.deleteFriend(userStorage.getUserById(userId2).get(), userStorage.getUserById(userId1).get());
-            userStorage.deleteFriend(userStorage.getUserById(userId1).get(), userStorage.getUserById(userId2).get());
+            userStorage.deleteFriend(user2, user1);
+            userStorage.deleteFriend(user1, user2);
             log.trace("Отозвали заявку");
         }
     }
@@ -141,14 +123,12 @@ public class UsersService {
     public List<UserDto> getCommonFriends(Long userId1, Long userId2) {
         checkExistUserByID(userId1);
         checkExistUserByID(userId2);
-        return userStorage.getCommonFriend(userId1, userId2).stream().map(el -> UserMapper.mapToUserDto(
-                userStorage.getUserById(el.getUserId2()).get())).collect(Collectors.toList());
+        return userStorage.getCommonFriend(userId1, userId2).stream().map(UserMapper::mapToUserDto).toList();
     }
 
     public List<UserDto> getFriends(Long id) {
         checkExistUserByID(id);
-        return userStorage.getAllFriend(id).stream().map(el -> UserMapper.mapToUserDto(
-                userStorage.getUserById(el.getUserId2()).get())).collect(Collectors.toList());
+        return userStorage.getAllFriend(id).stream().map(UserMapper::mapToUserDto).toList();
     }
 
 
@@ -170,12 +150,36 @@ public class UsersService {
         log.trace("Логин прошел проверку");
     }
 
-    private void checkExistUserByID(Long id) {
-        log.trace("Проверка существование пользователья с id = " + id);
-        if (userStorage.getUserById(id).isEmpty()) {
+    private User  checkExistUserByID(Long id) {
+        Optional<User> user = userStorage.getUserById(id);
+        if (user.isEmpty()) {
             log.warn("Пользователя с id = " + id + " не существует");
             throw new NotFoundException("Пользователь с id = " + id + " не найден");
         }
-        log.trace("Пользователь существует");
+        return user.get();
+    }
+
+    private User validationUpdateUser(UpdateUserDto updateUserDto) {
+        User newUser = checkExistUserByID(updateUserDto.getId());
+        if (updateUserDto.hasEmail()) {
+            log.trace("Проверяем свободно ли новая почта");
+            if (userStorage.isDuplicateEmailForUpdate(updateUserDto)) {
+                log.warn("Пользователь не был обновлен: Пользователь с таким email уже существует");
+                throw new DuplicatedDataException("Этот имейл уже используется");
+            }
+            log.trace("Почта свободно");
+            newUser.setEmail(updateUserDto.getEmail());
+        }
+        if (updateUserDto.hasLogin()) {
+            checkLogin(updateUserDto.getLogin());
+            newUser.setLogin(updateUserDto.getLogin());
+        }
+        if (updateUserDto.hasName()) {
+            newUser.setName(updateUserDto.getName());
+        }
+        if (updateUserDto.hasBirthday()) {
+            newUser.setBirthday(updateUserDto.getBirthday());
+        }
+        return newUser;
     }
 }

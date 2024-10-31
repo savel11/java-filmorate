@@ -22,7 +22,7 @@ public class Film {
     private  LocalDate releaseDate;
     private  Duration duration;
     private Long likes;
-    private List<FilmGenre> filmGenres;
-    private int ratingId;
+    private List<Genre> filmGenres;
+    private FilmRating rating;
 }
 

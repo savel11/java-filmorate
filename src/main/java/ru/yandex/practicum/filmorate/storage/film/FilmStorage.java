@@ -1,13 +1,15 @@
 package ru.yandex.practicum.filmorate.storage.film;
 
-import ru.yandex.practicum.filmorate.dto.film.UpdateFilmDto;
-import ru.yandex.practicum.filmorate.model.*;
+import ru.yandex.practicum.filmorate.model.FavoriteFilms;
+import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.model.User;
 
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
 public interface FilmStorage {
+
     Collection<Film> getAll();
 
     Film create(Film film);
@@ -24,13 +26,9 @@ public interface FilmStorage {
 
     List<Film> getPopularFilm(int count);
 
-    List<FilmGenre> getFilmGenresByFilmId(Long filmId);
-
     boolean deleteFilmById(Long id);
 
     void addFilmGenre(Long filmId, List<Long> genreId);
 
-    boolean deleteFilmGenre(Long filmId, Long genreId);
-
-    boolean isDuplicateForUpdated(UpdateFilmDto newFilmDto);
+    boolean deleteFilmGenre(Long filmId);
 }

@@ -10,7 +10,13 @@ import ru.yandex.practicum.filmorate.model.Friendships;
 import ru.yandex.practicum.filmorate.model.Status;
 import ru.yandex.practicum.filmorate.model.User;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Component
@@ -25,8 +31,8 @@ public class InMemoryUserStorage implements UserStorage {
     }
 
     @Override
-    public Collection<User> getAll() {
-        return users.values();
+    public List<User> getAll() {
+        return users.values().stream().toList();
     }
 
     @Override
@@ -63,26 +69,26 @@ public class InMemoryUserStorage implements UserStorage {
     }
 
     @Override
-    public void addFriend(User user1, User user2) {
-        user2.getFriends().remove(new Friendships(user2.getId(), user1.getId(), Status.Unconfirmed));
-        user2.getFriends().add(new Friendships(user2.getId(), user1.getId(), Status.Confirmed));
+    public void updateStatusOnConfirmed(User user1, User user2) {
+        user2.getFriends().remove(new Friendships(user2.getId(), user1.getId(), Status.UNCONFIRMED));
+        user2.getFriends().add(new Friendships(user2.getId(), user1.getId(), Status.CONFIRMED));
         updateFriends(user2);
     }
 
 
     @Override
     public void request(User user1, User user2) {
-        Friendships friendships = new Friendships(user1.getId(), user2.getId(), Status.Unconfirmed);
+        Friendships friendships = new Friendships(user1.getId(), user2.getId(), Status.UNCONFIRMED);
         user1.getFriends().add(friendships);
-        user2.getFriends().add(new Friendships(user2.getId(), user1.getId(), Status.Confirmed));
+        user2.getFriends().add(new Friendships(user2.getId(), user1.getId(), Status.CONFIRMED));
         updateFriends(user1);
         updateFriends(user2);
     }
 
     @Override
-    public void updateStatus(User user1, User user2) {
-        user2.getFriends().remove(new Friendships(user2.getId(), user1.getId(), Status.Confirmed));
-        user2.getFriends().add(new Friendships(user2.getId(), user1.getId(), Status.Unconfirmed));
+    public void updateStatusOnUnconfirmed(User user1, User user2) {
+        user2.getFriends().remove(new Friendships(user2.getId(), user1.getId(), Status.CONFIRMED));
+        user2.getFriends().add(new Friendships(user2.getId(), user1.getId(), Status.UNCONFIRMED));
         updateFriends(user2);
     }
 
@@ -93,33 +99,34 @@ public class InMemoryUserStorage implements UserStorage {
 
     @Override
     public void deleteFriend(User user1, User user2) {
-        user2.getFriends().remove(new Friendships(user2.getId(), user1.getId(), Status.Unconfirmed));
+        user2.getFriends().remove(new Friendships(user2.getId(), user1.getId(), Status.UNCONFIRMED));
         updateFriends(user2);
     }
 
     @Override
-    public List<Friendships> getAllFriend(Long userId1) {
-        return users.get(userId1).getFriends().stream().filter(f -> f.getStatus().equals(Status.Confirmed)).toList();
+    public List<User> getAllFriend(Long userId1) {
+        return users.get(userId1).getFriends().stream().filter(f -> f.getStatus().equals(Status.CONFIRMED))
+                .map(f -> getUserById(f.getId()).get()).toList();
     }
 
     @Override
     public Optional<Friendships> getFriend(Long userId1, Long userId2) {
-        return users.get(userId1).getFriends().stream().filter(f -> f.getUserId2().equals(userId2) &&
-                f.getStatus().equals(Status.Confirmed)).findFirst();
+        return users.get(userId1).getFriends().stream().filter(f -> f.getId().equals(userId2) &&
+                f.getStatus().equals(Status.CONFIRMED)).findFirst();
     }
 
     @Override
-    public List<Friendships> getCommonFriend(Long userId1, Long userId2) {
+    public List<User> getCommonFriend(Long userId1, Long userId2) {
         Set<Friendships> friendsUser1 = users.get(userId1).getFriends().stream().filter(f -> f.getStatus().equals(
-                Status.Confirmed)).collect(Collectors.toSet());
+                Status.CONFIRMED)).collect(Collectors.toSet());
         Set<Friendships> friendsUser2 = users.get(userId2).getFriends().stream().filter(f -> f.getStatus().equals(
-                Status.Confirmed)).collect(Collectors.toSet());
+                Status.CONFIRMED)).collect(Collectors.toSet());
         if (friendsUser1.isEmpty() || friendsUser2.isEmpty()) {
             return Collections.emptyList();
         }
         Set<Friendships> commonFriends = new HashSet<>(friendsUser1);
         if (commonFriends.retainAll(friendsUser2)) {
-            return commonFriends.stream().toList();
+            return commonFriends.stream().map(f -> getUserById(f.getId()).get()).toList();
         }
         return Collections.emptyList();
     }

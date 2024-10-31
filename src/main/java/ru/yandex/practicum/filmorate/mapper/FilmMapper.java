@@ -6,9 +6,6 @@ import ru.yandex.practicum.filmorate.dto.film.FilmDto;
 import ru.yandex.practicum.filmorate.dto.film.NewFilmDto;
 import ru.yandex.practicum.filmorate.model.Film;
 
-import ru.yandex.practicum.filmorate.model.FilmRating;
-import ru.yandex.practicum.filmorate.model.Genre;
-
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class FilmMapper {
@@ -19,7 +16,7 @@ public final class FilmMapper {
         film.setDuration(filmDto.getDuration());
         film.setReleaseDate(filmDto.getReleaseDate());
         film.setFilmGenres(filmDto.getGenres());
-        film.setRatingId(filmDto.getMpa().getId());
+        film.setRating(filmDto.getMpa());
         return film;
     }
 
@@ -30,13 +27,9 @@ public final class FilmMapper {
         filmDto.setDescription(film.getDescription());
         filmDto.setDuration(film.getDuration());
         filmDto.setReleaseDate(film.getReleaseDate());
-        if (film.getFilmGenres() != null && !film.getFilmGenres().isEmpty()) {
-            filmDto.setGenres(film.getFilmGenres().stream().map(g -> new Genre(g.getId(), null)).toList());
-        }
+        filmDto.setGenres(film.getFilmGenres());
         filmDto.setLikes(filmDto.getLikes());
-        FilmRating filmRating = new FilmRating();
-        filmRating.setId(film.getRatingId());
-        filmDto.setMpa(filmRating);
+        filmDto.setMpa(film.getRating());
         return filmDto;
     }
 }

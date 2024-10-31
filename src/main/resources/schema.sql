@@ -5,20 +5,21 @@ CREATE TABLE IF NOT EXISTS rating (
 
 CREATE TABLE IF NOT EXISTS film (
  film_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
- title VARCHAR(40) NOT NULL,
- description VARCHAR(200),
- release_date DATE CONSTRAINT check_date CHECK(release_date >= '1895-12-28'),
+ title VARCHAR NOT NULL,
+ description VARCHAR,
+ release_date DATE,
  duration INTEGER CONSTRAINT positive_duration CHECK (duration > 0),
  count_likes BIGINT CONSTRAINT positive_likes CHECK (count_likes >= 0),
  rating_id  INTEGER REFERENCES rating (rating_id),
- CONSTRAINT not_blank_title CHECK(title != '')
+ CONSTRAINT not_blank_title CHECK(title != ''),
+ CONSTRAINT check_date CHECK(release_date >= '1895-12-28')
 );
 
 CREATE TABLE IF NOT EXISTS users (
  user_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
- email VARCHAR(40) NOT NULL,
- login VARCHAR(40) NOT NULL,
- name VARCHAR(40) NOT NULL,
+ email VARCHAR NOT NULL,
+ login VARCHAR NOT NULL,
+ name VARCHAR NOT NULL,
  birthday DATE
 );
 
@@ -37,7 +38,7 @@ CREATE TABLE IF NOT EXISTS favorite_films (
 
 CREATE TABLE IF NOT EXISTS genre (
  genre_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
- name VARCHAR(40)
+ name VARCHAR
 );
 
 CREATE TABLE IF NOT EXISTS film_genre (

@@ -14,7 +14,7 @@ public class FriendshipsRowMaapper implements RowMapper<Friendships> {
     public Friendships mapRow(ResultSet rs, int rowNum) throws SQLException {
         Friendships friendships = new Friendships();
         friendships.setUserId1(rs.getLong("user_id1"));
-        friendships.setUserId2(rs.getLong("user_id2"));
+        friendships.setId(rs.getLong("user_id2"));
         friendships.setStatus(Status.getStatus(rs.getString("status")));
         return friendships;
     }

@@ -8,6 +8,7 @@ import ru.yandex.practicum.filmorate.model.FilmRating;
 import ru.yandex.practicum.filmorate.storage.rating.RatingStorage;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class RatingService {
@@ -16,10 +17,11 @@ public class RatingService {
     private RatingStorage ratingStorage;
 
     public FilmRating getRatingById(int id) {
-        if (ratingStorage.getFilmRatingById(id).isEmpty()) {
+        Optional<FilmRating> filmRating = ratingStorage.getFilmRatingById(id);
+        if (filmRating.isEmpty()) {
             throw new NotFoundException("Рейтинга с id " + id + " не существует");
         }
-        return ratingStorage.getFilmRatingById(id).get();
+        return filmRating.get();
     }
 
     public List<FilmRating> getAll() {
