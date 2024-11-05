@@ -1,4 +1,4 @@
-package ru.yandex.practicum.filmorate.resources;
+package ru.yandex.practicum.filmorate.serializers;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.SerializerProvider;
